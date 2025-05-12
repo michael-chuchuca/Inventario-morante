@@ -76,10 +76,19 @@ real = df_item.set_index('FECHA_VENTA')['CANTIDAD_VENDIDA'][-periodo:]
 # Predicción RNN
 rnn_pred = entrenar_rnn(df_item, periodo)
 
-# Visualización
+# Visualización con anotaciones
 fig, ax = plt.subplots(figsize=(10, 5))
 ax.plot(real.index, real.values, label='Real', marker='o')
 ax.plot(rnn_pred.index, rnn_pred.values, label='RNN', marker='d')
+
+# Mostrar valores sobre los puntos
+for i, fecha in enumerate(real.index):
+    valor_real = real.values[i]
+    if i < len(rnn_pred):  # Evitar error si hay menos predicciones que valores reales
+        valor_pred = rnn_pred.values[i]
+        ax.annotate(f'R: {valor_real:.0f}', (fecha, valor_real), textcoords="offset points", xytext=(0, 10), ha='center', fontsize=8, color='blue')
+        ax.annotate(f'P: {valor_pred:.0f}', (fecha, valor_pred), textcoords="offset points", xytext=(0, -15), ha='center', fontsize=8, color='green')
+
 ax.set_title(f'Predicción de ventas para {item_seleccionado} con RNN')
 ax.legend()
 st.pyplot(fig)
