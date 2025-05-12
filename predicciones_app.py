@@ -1,16 +1,14 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from prophet import Prophet
-from statsmodels.tsa.arima.model import ARIMA
-from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.preprocessing import MinMaxScaler
 import matplotlib.pyplot as plt
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
 
 # -----------------------
-# Funciones de predicción
+# Funciones
 # -----------------------
 
 @st.cache_data
@@ -21,24 +19,7 @@ def cargar_datos(excel_path):
     df = df.sort_values(by='FECHA_VENTA')
     return df
 
-def entrenar_prophet(df, periodo):
-    df_p = df[['FECHA_VENTA', 'CANTIDAD_VENDIDA']].rename(columns={'FECHA_VENTA': 'ds', 'CANTIDAD_VENDIDA': 'y'})
-    model = Prophet()
-    model.fit(df_p)
-    future = model.make_future_dataframe(periods=periodo)
-    forecast = model.predict(future)
-    return forecast[['ds', 'yhat']].set_index('ds')
-
-def entrenar_arima(df, periodo):
-    serie = df.set_index('FECHA_VENTA')['CANTIDAD_VENDIDA']
-    modelo = ARIMA(serie, order=(5,1,0))
-    modelo_fit = modelo.fit()
-    pred = modelo_fit.forecast(steps=periodo)
-    fechas = pd.date_range(start=df['FECHA_VENTA'].max() + pd.Timedelta(days=1), periods=periodo)
-    return pd.Series(pred.values, index=fechas)
-
-def entrenar_rnn(df, periodo):
-    look_back = 5
+def entrenar_rnn(df, periodo, look_back=5):
     ventas = df['CANTIDAD_VENDIDA'].values.reshape(-1, 1)
     scaler = MinMaxScaler()
     ventas_norm = scaler.fit_transform(ventas)
@@ -64,15 +45,19 @@ def entrenar_rnn(df, periodo):
         predicciones.append(pred[0, 0])
         ultimos = np.append(ultimos[1:], [[pred[0, 0]]], axis=0)
 
-    pred_final = scaler.inverse_transform(np.array(predicciones).reshape(-1,1)).flatten()
+    pred_final = scaler.inverse_transform(np.array(predicciones).reshape(-1, 1)).flatten()
     fechas = pd.date_range(start=df['FECHA_VENTA'].max() + pd.Timedelta(days=1), periods=periodo)
     return pd.Series(pred_final, index=fechas)
+
+def mean_absolute_percentage_error(y_true, y_pred):
+    y_true, y_pred = np.array(y_true), np.array(y_pred)
+    return np.mean(np.abs((y_true - y_pred) / (y_true + 1e-10))) * 100
 
 # -----------------------
 # Interfaz Streamlit
 # -----------------------
 
-st.title("Predicción de Demanda de Inventario")
+st.title("Predicción de Demanda con RNN")
 
 excel_path = "Items_Morante.xlsx"
 df = cargar_datos(excel_path)
@@ -85,27 +70,26 @@ descripcion = df_item['DESCRIPCION'].iloc[0]
 st.write(f"**Descripción del ítem:** {descripcion}")
 periodo = st.slider("Días a predecir", min_value=7, max_value=60, value=45)
 
-
-# Predicciones
-prophet_pred = entrenar_prophet(df_item, periodo)
-arima_pred = entrenar_arima(df_item, periodo)
-rnn_pred = entrenar_rnn(df_item, periodo)
-
 # Real
 real = df_item.set_index('FECHA_VENTA')['CANTIDAD_VENDIDA'][-periodo:]
+
+# Predicción RNN
+rnn_pred = entrenar_rnn(df_item, periodo)
 
 # Visualización
 fig, ax = plt.subplots(figsize=(10, 5))
 ax.plot(real.index, real.values, label='Real', marker='o')
-ax.plot(prophet_pred[-periodo:].index, prophet_pred[-periodo:]['yhat'], label='Prophet', marker='x')
-ax.plot(arima_pred.index, arima_pred.values, label='ARIMA', marker='s')
 ax.plot(rnn_pred.index, rnn_pred.values, label='RNN', marker='d')
-ax.set_title(f'Predicción de ventas para {item_seleccionado}')
+ax.set_title(f'Predicción de ventas para {item_seleccionado} con RNN')
 ax.legend()
 st.pyplot(fig)
 
-# MAE
-st.subheader("Evaluación MAE")
-st.write(f"**Prophet:** {mean_absolute_error(real.values, prophet_pred[-periodo:]['yhat'].values):.2f}")
-st.write(f"**ARIMA:** {mean_absolute_error(real.values, arima_pred.values):.2f}")
-st.write(f"**RNN:** {mean_absolute_error(real.values, rnn_pred.values):.2f}")
+# Evaluación
+mae = mean_absolute_error(real.values, rnn_pred.values[:len(real)])
+rmse = np.sqrt(mean_squared_error(real.values, rnn_pred.values[:len(real)]))
+mape = mean_absolute_percentage_error(real.values, rnn_pred.values[:len(real)])
+
+st.subheader("Evaluación del Modelo RNN")
+st.write(f"**MAE:** {mae:.2f}")
+st.write(f"**RMSE:** {rmse:.2f}")
+st.write(f"**MAPE:** {mape:.2f}%")
