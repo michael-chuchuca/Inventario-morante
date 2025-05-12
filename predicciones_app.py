@@ -62,7 +62,7 @@ df_p = df_item[['FECHA_VENTA', 'CANTIDAD_VENDIDA']].rename(columns={'FECHA_VENTA
 ax.plot(df_p['ds'], df_p['y'], label='Histórico', color='blue', linewidth=2)
 
 # Predicción completa
-forecast = entrenar_prophet(df_item, periodo=30)  # 30 días para una mejor curva
+forecast = entrenar_prophet(df_item, periodo=30)  # 45 días para una mejor curva
 forecast = forecast.reset_index()
 forecast = forecast[forecast['ds'] > df_p['ds'].max()]  # solo futuro
 ax.plot(forecast['ds'], forecast['yhat'], label='Predicción Prophet', color='green', linestyle='--', linewidth=2)
