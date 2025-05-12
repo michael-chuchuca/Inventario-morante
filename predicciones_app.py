@@ -52,22 +52,30 @@ prophet_pred = entrenar_prophet(df_item, periodo)
 fecha_pred = prophet_pred.index[-1]
 valor_pred = prophet_pred['yhat'].values[-1]
 
-# Gráfico
-fig, ax = plt.subplots(figsize=(10, 5))
-ax.plot(real.index, real.values, label='Serie Real', alpha=0.3, color='gray')
-ax.scatter(fecha_real_final, valor_real_final, color='blue', label='Real')
-ax.scatter(fecha_pred, valor_pred, color='green', label='Predicción Prophet')
+# Gráfico con barras y etiquetas
+fig, ax = plt.subplots(figsize=(6, 5))
 
-# Etiquetas
-ax.annotate(f'Real: {valor_real_final:.0f}', (fecha_real_final, valor_real_final), 
-            textcoords="offset points", xytext=(0, 10), ha='center', fontsize=9, color='blue')
-ax.annotate(f'Predicción: {valor_pred:.0f}', (fecha_pred, valor_pred), 
-            textcoords="offset points", xytext=(0, -15), ha='center', fontsize=9, color='green')
+# Valores y etiquetas
+fechas = [fecha_real_final.strftime("%Y-%m-%d"), fecha_pred.strftime("%Y-%m-%d")]
+valores = [valor_real_final, valor_pred]
+colores = ['skyblue', 'lightgreen']
 
-ax.set_title(f'Última predicción para {item_seleccionado} con Prophet')
-ax.legend()
+# Crear barras
+bars = ax.bar(fechas, valores, color=colores)
+
+# Añadir etiquetas con fuente tamaño 11
+for bar, valor in zip(bars, valores):
+    altura = bar.get_height()
+    ax.annotate(f'{valor:.0f}',
+                xy=(bar.get_x() + bar.get_width() / 2, altura),
+                xytext=(0, 5),  # separación vertical
+                textcoords="offset points",
+                ha='center', va='bottom',
+                fontsize=11, color='black')
+
+ax.set_title(f'Comparación: Real vs Predicción (Prophet)', fontsize=13)
+ax.set_ylabel('Cantidad Vendida')
 st.pyplot(fig)
-
 # Evaluación (solo si se compara con valor real conocido)
 st.subheader("Evaluación de la Predicción (último punto)")
 mae = mean_absolute_error([valor_real_final], [valor_pred])
