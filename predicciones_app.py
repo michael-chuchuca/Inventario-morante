@@ -1,11 +1,9 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+from prophet import Prophet
 from sklearn.metrics import mean_absolute_error, mean_squared_error
-from sklearn.preprocessing import MinMaxScaler
 import matplotlib.pyplot as plt
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense
 
 # -----------------------
 # Funciones
@@ -19,45 +17,19 @@ def cargar_datos(excel_path):
     df = df.sort_values(by='FECHA_VENTA')
     return df
 
-def entrenar_rnn(df, periodo, look_back=5):
-    ventas = df['CANTIDAD_VENDIDA'].values.reshape(-1, 1)
-    scaler = MinMaxScaler()
-    ventas_norm = scaler.fit_transform(ventas)
-
-    X, y = [], []
-    for i in range(len(ventas_norm) - look_back):
-        X.append(ventas_norm[i:i+look_back])
-        y.append(ventas_norm[i+look_back])
-    X = np.array(X)
-    y = np.array(y)
-    X = X.reshape((X.shape[0], X.shape[1], 1))
-
-    model = Sequential()
-    model.add(LSTM(50, input_shape=(look_back, 1)))
-    model.add(Dense(1))
-    model.compile(loss='mean_squared_error', optimizer='adam')
-    model.fit(X, y, epochs=20, batch_size=1, verbose=0)
-
-    ultimos = X[-1]
-    predicciones = []
-    for _ in range(periodo):
-        pred = model.predict(ultimos.reshape(1, look_back, 1), verbose=0)
-        predicciones.append(pred[0, 0])
-        ultimos = np.append(ultimos[1:], [[pred[0, 0]]], axis=0)
-
-    pred_final = scaler.inverse_transform(np.array(predicciones).reshape(-1, 1)).flatten()
-    fechas = pd.date_range(start=df['FECHA_VENTA'].max() + pd.Timedelta(days=1), periods=periodo)
-    return pd.Series(pred_final, index=fechas)
-
-def mean_absolute_percentage_error(y_true, y_pred):
-    y_true, y_pred = np.array(y_true), np.array(y_pred)
-    return np.mean(np.abs((y_true - y_pred) / (y_true + 1e-10))) * 100
+def entrenar_prophet(df, periodo):
+    df_p = df[['FECHA_VENTA', 'CANTIDAD_VENDIDA']].rename(columns={'FECHA_VENTA': 'ds', 'CANTIDAD_VENDIDA': 'y'})
+    model = Prophet()
+    model.fit(df_p)
+    future = model.make_future_dataframe(periods=periodo)
+    forecast = model.predict(future)
+    return forecast[['ds', 'yhat']].set_index('ds')
 
 # -----------------------
 # Interfaz Streamlit
 # -----------------------
 
-st.title("Predicción de Demanda con RNN")
+st.title("Predicción de Demanda con Prophet")
 
 excel_path = "Items_Morante.xlsx"
 df = cargar_datos(excel_path)
@@ -68,43 +40,40 @@ item_seleccionado = st.selectbox("Selecciona un ítem para analizar:", items)
 df_item = df[df['ITEM'] == item_seleccionado].copy()
 descripcion = df_item['DESCRIPCION'].iloc[0]
 st.write(f"**Descripción del ítem:** {descripcion}")
-periodo = st.slider("Días a predecir", min_value=7, max_value=60, value=45)
+periodo = 1  # Solo se predice 1 día para comparar con el último real
 
-# Real
-real = df_item.set_index('FECHA_VENTA')['CANTIDAD_VENDIDA'][-periodo:]
-
-# Predicción RNN
-rnn_pred = entrenar_rnn(df_item, periodo)
-
-# Visualización simplificada con solo un valor real y uno predicho
-fig, ax = plt.subplots(figsize=(10, 5))
-ax.plot(real.index, real.values, label='Real', marker='o')
-ax.plot(rnn_pred.index, rnn_pred.values, label='RNN', marker='d')
-
-# Obtener el último valor real y su fecha
+# Datos reales
+real = df_item.set_index('FECHA_VENTA')['CANTIDAD_VENDIDA']
 fecha_real_final = real.index[-1]
 valor_real_final = real.values[-1]
 
-# Obtener el primer valor predicho y su fecha (porque las fechas de predicción son futuras)
-fecha_pred_final = rnn_pred.index[0]
-valor_pred_final = rnn_pred.values[0]
+# Predicción con Prophet
+prophet_pred = entrenar_prophet(df_item, periodo)
+fecha_pred = prophet_pred.index[-1]
+valor_pred = prophet_pred['yhat'].values[-1]
 
-# Anotar solo estos dos puntos
+# Gráfico
+fig, ax = plt.subplots(figsize=(10, 5))
+ax.plot(real.index, real.values, label='Serie Real', alpha=0.3, color='gray')
+ax.scatter(fecha_real_final, valor_real_final, color='blue', label='Real')
+ax.scatter(fecha_pred, valor_pred, color='green', label='Predicción Prophet')
+
+# Etiquetas
 ax.annotate(f'Real: {valor_real_final:.0f}', (fecha_real_final, valor_real_final), 
             textcoords="offset points", xytext=(0, 10), ha='center', fontsize=9, color='blue')
-ax.annotate(f'RNN: {valor_pred_final:.0f}', (fecha_pred_final, valor_pred_final), 
+ax.annotate(f'Predicción: {valor_pred:.0f}', (fecha_pred, valor_pred), 
             textcoords="offset points", xytext=(0, -15), ha='center', fontsize=9, color='green')
 
-ax.set_title(f'Predicción de ventas para {item_seleccionado} con RNN')
+ax.set_title(f'Última predicción para {item_seleccionado} con Prophet')
 ax.legend()
 st.pyplot(fig)
 
-# Evaluación
-mae = mean_absolute_error(real.values, rnn_pred.values[:len(real)])
-rmse = np.sqrt(mean_squared_error(real.values, rnn_pred.values[:len(real)]))
-mape = mean_absolute_percentage_error(real.values, rnn_pred.values[:len(real)])
+# Evaluación (solo si se compara con valor real conocido)
+st.subheader("Evaluación de la Predicción (último punto)")
+mae = mean_absolute_error([valor_real_final], [valor_pred])
+rmse = np.sqrt(mean_squared_error([valor_real_final], [valor_pred]))
+mape = np.mean(np.abs((valor_real_final - valor_pred) / (valor_real_final + 1e-10))) * 100
 
-st.subheader("Evaluación del Modelo RNN")
 st.write(f"**MAE:** {mae:.2f}")
 st.write(f"**RMSE:** {rmse:.2f}")
 st.write(f"**MAPE:** {mape:.2f}%")
