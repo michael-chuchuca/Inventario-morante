@@ -52,27 +52,27 @@ prophet_pred = entrenar_prophet(df_item, periodo)
 fecha_pred = prophet_pred.index[-1]
 valor_pred = prophet_pred['yhat'].values[-1]
 
-# Gráfico con líneas y etiquetas
-fig, ax = plt.subplots(figsize=(6, 5))
+# Reemplaza tu bloque gráfico con este:
 
-# Dibujar línea con dos puntos
-ax.plot([fecha_real_final, fecha_pred], [valor_real_final, valor_pred], color='gray', linestyle='--', alpha=0.5)
-ax.plot(fecha_real_final, valor_real_final, marker='o', color='blue', label='Real')
-ax.plot(fecha_pred, valor_pred, marker='o', color='green', label='Predicción Prophet')
+# Gráfico con tendencia completa
+fig, ax = plt.subplots(figsize=(10, 6))
 
-# Añadir etiquetas con fuente tamaño 11
-ax.annotate(f'{valor_real_final:.0f}', 
-            (fecha_real_final, valor_real_final), 
-            textcoords="offset points", xytext=(0, 10), ha='center', fontsize=11, color='blue')
+# Datos históricos
+df_p = df_item[['FECHA_VENTA', 'CANTIDAD_VENDIDA']].rename(columns={'FECHA_VENTA': 'ds', 'CANTIDAD_VENDIDA': 'y'})
+ax.plot(df_p['ds'], df_p['y'], label='Histórico', color='blue', linewidth=2)
 
-ax.annotate(f'{valor_pred:.0f}', 
-            (fecha_pred, valor_pred), 
-            textcoords="offset points", xytext=(0, 10), ha='center', fontsize=11, color='green')
+# Predicción completa
+forecast = entrenar_prophet(df_item, periodo=30)  # 30 días para una mejor curva
+forecast = forecast.reset_index()
+forecast = forecast[forecast['ds'] > df_p['ds'].max()]  # solo futuro
+ax.plot(forecast['ds'], forecast['yhat'], label='Predicción Prophet', color='green', linestyle='--', linewidth=2)
 
-# Título y leyenda
-ax.set_title(f'Comparación: Real vs Predicción (Prophet)', fontsize=13)
+# Etiquetas, leyenda y estilo
+ax.set_title(f'Predicción de Demanda para el Ítem: {item_seleccionado}', fontsize=14)
+ax.set_xlabel('Fecha')
 ax.set_ylabel('Cantidad Vendida')
 ax.legend()
+ax.grid(True)
 st.pyplot(fig)
 
 # Evaluación (solo si se compara con valor real conocido)
