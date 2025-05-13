@@ -97,13 +97,6 @@ ax.axvline(fecha_corte, color='gray', linestyle=':', alpha=0.6)
 ax.annotate('Inicio de Predicción', xy=(fecha_corte, ax.get_ylim()[1]*0.9),
             xytext=(10, 0), textcoords='offset points', fontsize=10, color='gray')
 
-# Mostrar total predicho al final de la curva
-ax.annotate(f'Total: {total_predicho:.0f} unidades',
-            xy=(forecast_futuro['ds'].iloc[-1], forecast_futuro['yhat'].iloc[-1]),
-            xytext=(-10, -20), textcoords='offset points', fontsize=12,
-            ha='right', color='black', fontweight='bold',
-            bbox=dict(facecolor='white', edgecolor='gray', boxstyle='round,pad=0.3'))
-
 # Estética general
 ax.set_title(f'Predicción de Demanda: {item_seleccionado}', fontsize=15, fontweight='bold')
 ax.set_xlabel('Fecha', fontsize=12)
@@ -118,7 +111,7 @@ st.pyplot(fig)
 # Texto adicional bajo el gráfico
 # -----------------------
 st.subheader(f" Total estimado para los próximos {periodo} días:")
-st.write(f" **{total_predicho:.0f} unidades estimadas** para importar o producir en {periodo} días.")
+st.write(f" **{total_predicho:.0f} unidades estimadas** para importar en {periodo} días.")
 
 # -----------------------
 # Evaluación del último punto (referencial)
