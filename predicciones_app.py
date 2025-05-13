@@ -29,7 +29,7 @@ def entrenar_prophet(df, periodo):
 # Interfaz Streamlit
 # -----------------------
 
-st.title("Predicción de Demanda con Prophet")
+st.title(" Predicción de Demanda con Prophet")
 
 excel_path = "Items_Morante.xlsx"
 df = cargar_datos(excel_path)
@@ -60,38 +60,51 @@ forecast = forecast.reset_index()
 forecast_futuro = forecast[forecast['ds'] > df_p['ds'].max()]
 
 # -----------------------
+# Total estimado
+# -----------------------
+total_predicho = forecast_futuro['yhat'].sum()
+
+# -----------------------
 # Gráfico
 # -----------------------
 
 fig, ax = plt.subplots(figsize=(10, 6))
 
 # Estilo pastel y moderno
-historico_color = '#A2C4C9'  # Azul pastel
-prediccion_color = '#B6D7A8'  # Verde pastel
-punto_real_color = '#3D85C6'  # Azul fuerte
-punto_pred_color = '#38761D'  # Verde fuerte
+historico_color = '#A2C4C9'    # Azul pastel
+prediccion_color = '#B6D7A8'   # Verde pastel
+punto_real_color = '#3D85C6'   # Azul fuerte
+punto_pred_color = '#38761D'   # Verde fuerte
 
 # Curvas
 ax.plot(df_p['ds'], df_p['y'], label='Histórico', color=historico_color, linewidth=2.5)
-ax.plot(forecast_futuro['ds'], forecast_futuro['yhat'], label=f'Predicción ({periodo} días)', color=prediccion_color, linestyle='--', linewidth=2.5)
+ax.plot(forecast_futuro['ds'], forecast_futuro['yhat'], label=f'Predicción ({periodo} días)', 
+        color=prediccion_color, linestyle='--', linewidth=2.5)
 
 # Puntos finales
 ax.plot(fecha_real_final, valor_real_final, 'o', color=punto_real_color, markersize=8, label='Último Real')
 ax.plot(fecha_pred, valor_pred, 'o', color=punto_pred_color, markersize=8, label='Última Predicción')
 
-# Anotaciones
+# Anotaciones de puntos individuales
 ax.annotate(f'{valor_real_final:.0f}', (fecha_real_final, valor_real_final),
             textcoords="offset points", xytext=(0, 10), ha='center', fontsize=11, color=punto_real_color, fontweight='bold')
 ax.annotate(f'{valor_pred:.0f}', (fecha_pred, valor_pred),
             textcoords="offset points", xytext=(0, 10), ha='center', fontsize=11, color=punto_pred_color, fontweight='bold')
 
-# Línea de corte (inicio predicción)
+# Línea de corte entre histórico y predicción
 fecha_corte = df_p['ds'].max()
 ax.axvline(fecha_corte, color='gray', linestyle=':', alpha=0.6)
 ax.annotate('Inicio de Predicción', xy=(fecha_corte, ax.get_ylim()[1]*0.9),
             xytext=(10, 0), textcoords='offset points', fontsize=10, color='gray')
 
-# Estética
+# Mostrar total predicho al final de la curva
+ax.annotate(f'Total: {total_predicho:.0f} unidades',
+            xy=(forecast_futuro['ds'].iloc[-1], forecast_futuro['yhat'].iloc[-1]),
+            xytext=(-10, -20), textcoords='offset points', fontsize=12,
+            ha='right', color='black', fontweight='bold',
+            bbox=dict(facecolor='white', edgecolor='gray', boxstyle='round,pad=0.3'))
+
+# Estética general
 ax.set_title(f'Predicción de Demanda: {item_seleccionado}', fontsize=15, fontweight='bold')
 ax.set_xlabel('Fecha', fontsize=12)
 ax.set_ylabel('Cantidad Vendida', fontsize=12)
@@ -102,16 +115,15 @@ plt.xticks(rotation=45)
 st.pyplot(fig)
 
 # -----------------------
-# Total estimado
+# Texto adicional bajo el gráfico
 # -----------------------
-st.subheader(f"Total estimado para los próximos {periodo} días:")
-total_predicho = forecast_futuro['yhat'].sum()
-st.write(f"🔢 **{total_predicho:.0f} unidades estimadas** para importar o producir en {periodo} días.")
+st.subheader(f" Total estimado para los próximos {periodo} días:")
+st.write(f" **{total_predicho:.0f} unidades estimadas** para importar o producir en {periodo} días.")
 
 # -----------------------
-# Evaluación del último punto (opcional)
+# Evaluación del último punto (referencial)
 # -----------------------
-st.subheader("Evaluación del Último Punto Predicho (referencial)")
+st.subheader(" Evaluación del Último Punto Predicho")
 mae = mean_absolute_error([valor_real_final], [valor_pred])
 rmse = np.sqrt(mean_squared_error([valor_real_final], [valor_pred]))
 mape = np.mean(np.abs((valor_real_final - valor_pred) / (valor_real_final + 1e-10))) * 100
