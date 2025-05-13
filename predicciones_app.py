@@ -40,7 +40,9 @@ item_seleccionado = st.selectbox("Selecciona un ítem para analizar:", items)
 df_item = df[df['ITEM'] == item_seleccionado].copy()
 descripcion = df_item['DESCRIPCION'].iloc[0]
 st.write(f"**Descripción del ítem:** {descripcion}")
-periodo = 45  # Predicción a 45 días
+
+# Slider para elegir días a predecir
+periodo = st.slider("Selecciona el número de días a predecir:", min_value=7, max_value=90, value=45)
 
 # Datos reales
 real = df_item.set_index('FECHA_VENTA')['CANTIDAD_VENDIDA']
@@ -71,7 +73,7 @@ punto_pred_color = '#38761D'  # Verde fuerte
 
 # Curvas
 ax.plot(df_p['ds'], df_p['y'], label='Histórico', color=historico_color, linewidth=2.5)
-ax.plot(forecast_futuro['ds'], forecast_futuro['yhat'], label='Predicción (45 días)', color=prediccion_color, linestyle='--', linewidth=2.5)
+ax.plot(forecast_futuro['ds'], forecast_futuro['yhat'], label=f'Predicción ({periodo} días)', color=prediccion_color, linestyle='--', linewidth=2.5)
 
 # Puntos finales
 ax.plot(fecha_real_final, valor_real_final, 'o', color=punto_real_color, markersize=8, label='Último Real')
@@ -100,9 +102,16 @@ plt.xticks(rotation=45)
 st.pyplot(fig)
 
 # -----------------------
+# Total estimado
+# -----------------------
+st.subheader(f"Total estimado para los próximos {periodo} días:")
+total_predicho = forecast_futuro['yhat'].sum()
+st.write(f"🔢 **{total_predicho:.0f} unidades estimadas** para importar o producir en {periodo} días.")
+
+# -----------------------
 # Evaluación del último punto (opcional)
 # -----------------------
-st.subheader("Evaluación del Último Punto Predicho (solo referencia)")
+st.subheader("Evaluación del Último Punto Predicho (referencial)")
 mae = mean_absolute_error([valor_real_final], [valor_pred])
 rmse = np.sqrt(mean_squared_error([valor_real_final], [valor_pred]))
 mape = np.mean(np.abs((valor_real_final - valor_pred) / (valor_real_final + 1e-10))) * 100
