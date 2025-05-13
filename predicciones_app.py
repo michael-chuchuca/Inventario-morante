@@ -88,7 +88,7 @@ ax.plot(fecha_pred, valor_pred, 'o', color=punto_pred_color, markersize=8, label
 # Anotaciones de puntos individuales
 ax.annotate(f'{valor_real_final:.0f}', (fecha_real_final, valor_real_final),
             textcoords="offset points", xytext=(0, 10), ha='center', fontsize=11, color=punto_real_color, fontweight='bold')
-ax.annotate(f'{valor_pred:.0f}', (fecha_pred, valor_pred),
+ax.annotate(f'{total_predicho:.0f}', (fecha_pred, valor_pred),
             textcoords="offset points", xytext=(0, 10), ha='center', fontsize=11, color=punto_pred_color, fontweight='bold')
 
 # Línea de corte entre histórico y predicción
