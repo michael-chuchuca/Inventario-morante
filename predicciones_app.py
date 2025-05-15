@@ -60,31 +60,31 @@ total_predicho = forecast_futuro['yhat'].sum()
 # Gráfico
 # -----------------------
 
-fig, ax = plt.subplots(figsize=(10, 6))
+fig, ax = plt.subplots(figsize=(14, 6))  # Más ancho
 
-# Azul: valor real
-ax.plot(df_comparacion['ds'], df_comparacion['y'], 'b--', label='Cantidad Real')
+# Línea azul: valores reales
+ax.plot(df_comparacion['ds'], df_comparacion['y'], 'b--', label='Cantidad Real', linewidth=2)
 
-# Rojo: predicción en el histórico
-ax.plot(df_comparacion['ds'], df_comparacion['yhat'], 'r--', label='Cantidad Pronosticada (histórica)')
+# Línea roja: valores pronosticados (histórico + futuro)
+ax.plot(forecast['ds'], forecast['yhat'], 'r--', label='Cantidad Pronosticada', linewidth=2)
 
-# Verde: predicción futura
-ax.plot(forecast_futuro['ds'], forecast_futuro['yhat'], 'r-', label='Cantidad Pronosticada (futura)', linewidth=2.2)
-
-# Línea vertical para indicar el corte entre real y predicción
+# Línea vertical para indicar el inicio del pronóstico
 ax.axvline(fecha_corte, color='gray', linestyle=':', alpha=0.7)
 ax.annotate('Inicio de Predicción', xy=(fecha_corte, ax.get_ylim()[1]*0.9),
             xytext=(10, 0), textcoords='offset points', fontsize=10, color='gray')
 
-# Estética
+# Título y etiquetas
 ax.set_title("Pronóstico de Ventas con Valores Reales", fontsize=15)
 ax.set_xlabel("Fecha", fontsize=12)
 ax.set_ylabel("Cantidad Vendida", fontsize=12)
+
+# Estética
 ax.legend()
 ax.grid(True)
 plt.xticks(rotation=45)
 
 st.pyplot(fig)
+
 # -----------------------
 # Total estimado a futuro
 # -----------------------
