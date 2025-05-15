@@ -62,11 +62,16 @@ total_predicho = forecast_futuro['yhat'].sum()
 
 fig, ax = plt.subplots(figsize=(10, 6))
 
-# Gráfico de comparación real vs predicción
-ax.plot(df_comparacion['ds'], df_comparacion['y'], 'r--', label='Cantidad Real')
-ax.plot(df_comparacion['ds'], df_comparacion['yhat'], 'b--', label='Cantidad Pronosticada')
+# Azul: valor real
+ax.plot(df_comparacion['ds'], df_comparacion['y'], 'b--', label='Cantidad Real')
 
-# Línea de corte
+# Rojo: predicción en el histórico
+ax.plot(df_comparacion['ds'], df_comparacion['yhat'], 'r--', label='Cantidad Pronosticada (histórica)')
+
+# Verde: predicción futura
+ax.plot(forecast_futuro['ds'], forecast_futuro['yhat'], 'r-', label='Cantidad Pronosticada (futura)', linewidth=2.2)
+
+# Línea vertical para indicar el corte entre real y predicción
 ax.axvline(fecha_corte, color='gray', linestyle=':', alpha=0.7)
 ax.annotate('Inicio de Predicción', xy=(fecha_corte, ax.get_ylim()[1]*0.9),
             xytext=(10, 0), textcoords='offset points', fontsize=10, color='gray')
@@ -80,7 +85,6 @@ ax.grid(True)
 plt.xticks(rotation=45)
 
 st.pyplot(fig)
-
 # -----------------------
 # Total estimado a futuro
 # -----------------------
