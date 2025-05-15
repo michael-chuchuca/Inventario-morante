@@ -84,6 +84,11 @@ ax.grid(True)
 plt.xticks(rotation=45)
 
 st.pyplot(fig)
+# -----------------------
+# Texto adicional bajo el gráfico
+# -----------------------
+st.subheader(f"📦 Total estimado para los próximos {periodo} días:")
+st.write(f"**{total_predicho:.0f} unidades estimadas** para importar en {periodo} días.")
 
 # -----------------------
 # Total estimado a futuro
