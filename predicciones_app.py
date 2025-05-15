@@ -88,21 +88,22 @@ st.pyplot(fig)
 # -----------------------
 # Total estimado a futuro
 # -----------------------
-st.subheader(f"📦 Total estimado para los próximos {periodo} días:")
-st.write(f"**{total_predicho:.0f} unidades estimadas** para importar en {periodo} días.")
+st.subheader("Evaluación del Pronóstico desde el Inicio de la Predicción")
 
-# -----------------------
-# Evaluación de toda la serie
-# -----------------------
+# Filtrar los datos comparables desde el inicio de la predicción
+df_eval = df_comparacion[df_comparacion['ds'] >= fecha_corte].copy()
+df_eval = df_eval.dropna()  # Asegura que no haya nulos en y o yhat
 
-# Evaluar solo donde hay datos reales
-df_evaluacion = df_comparacion.dropna(subset=['y', 'yhat'])
+# Valores reales y pronosticados
+y_true = df_eval['y']
+y_pred = df_eval['yhat']
 
-mae = mean_absolute_error(df_evaluacion['y'], df_evaluacion['yhat'])
-rmse = np.sqrt(mean_squared_error(df_evaluacion['y'], df_evaluacion['yhat']))
-mape = np.mean(np.abs((df_evaluacion['y'] - df_evaluacion['yhat']) / (df_evaluacion['y'] + 1e-10))) * 100
+# Métricas
+mae = mean_absolute_error(y_true, y_pred)
+rmse = np.sqrt(mean_squared_error(y_true, y_pred))
+mape = np.mean(np.abs((y_true - y_pred) / (y_true + 1e-10))) * 100
 
-st.subheader("📊 Evaluación del Modelo en el Período Real")
+# Mostrar
 st.write(f"**MAE:** {mae:.2f}")
 st.write(f"**RMSE:** {rmse:.2f}")
 st.write(f"**MAPE:** {mape:.2f}%")
