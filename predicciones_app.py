@@ -93,7 +93,6 @@ st.write(f"**{total_predicho:.0f} unidades estimadas** para importar en {periodo
 # -----------------------
 # Total estimado a futuro
 # -----------------------
-st.subheader("Evaluación del Pronóstico desde el Inicio de la Predicción")
 
 # Filtrar los datos comparables desde el inicio de la predicción
 df_eval = df_comparacion[df_comparacion['ds'] >= fecha_corte].copy()
