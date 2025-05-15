@@ -29,7 +29,7 @@ def entrenar_prophet(df, periodo):
 # Interfaz Streamlit
 # -----------------------
 
-st.title("📈 Predicción de Demanda con Prophet")
+st.title("Predicción de Demanda con Prophet")
 
 excel_path = "Items_Morante.xlsx"
 df = cargar_datos(excel_path)
@@ -87,7 +87,7 @@ st.pyplot(fig)
 # -----------------------
 # Texto adicional bajo el gráfico
 # -----------------------
-st.subheader(f"📦 Total estimado para los próximos {periodo} días:")
+st.subheader(f"Total estimado para los próximos {periodo} días:")
 st.write(f"**{total_predicho:.0f} unidades estimadas** para importar en {periodo} días.")
 
 # -----------------------
