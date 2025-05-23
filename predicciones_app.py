@@ -79,9 +79,6 @@ ax.axvline(fecha_corte, color='gray', linestyle=':', alpha=0.7)
 ax.annotate('Inicio de Predicción', xy=(fecha_corte, ax.get_ylim()[1]*0.9),
             xytext=(10, 0), textcoords='offset points', fontsize=10, color='gray')
 
-# Sombra para rango de predicción
-ax.axvspan(fecha_corte, fecha_corte + pd.Timedelta(days=periodo), color='gray', alpha=0.1, label='Rango de predicción')
-
 # Título y etiquetas
 ax.set_title("Pronóstico de Ventas con Valores Reales", fontsize=15)
 ax.set_xlabel("Fecha", fontsize=12)
