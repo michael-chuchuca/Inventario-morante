@@ -108,16 +108,19 @@ st.write(f"**{total_predicho:.0f} unidades estimadas** para importar en {periodo
 df_eval = df_comparacion[df_comparacion['ds'] >= fecha_corte].copy()
 df_eval = df_eval.dropna()  # Asegura que no haya nulos en y o yhat
 
-# Valores reales y pronosticados
-y_true = df_eval['y']
-y_pred = df_eval['yhat']
+if df_eval.empty:
+    st.warning("No hay datos reales disponibles en el período de predicción para calcular métricas de error.")
+else:
+    # Valores reales y pronosticados
+    y_true = df_eval['y']
+    y_pred = df_eval['yhat']
 
-# Métricas
-mae = mean_absolute_error(y_true, y_pred)
-rmse = np.sqrt(mean_squared_error(y_true, y_pred))
-mape = np.mean(np.abs((y_true - y_pred) / (y_true + 1e-10))) * 100
+    # Métricas
+    mae = mean_absolute_error(y_true, y_pred)
+    rmse = np.sqrt(mean_squared_error(y_true, y_pred))
+    mape = np.mean(np.abs((y_true - y_pred) / (y_true + 1e-10))) * 100
 
-# Mostrar
-st.write(f"**MAE:** {mae:.2f}")
-st.write(f"**RMSE:** {rmse:.2f}")
-st.write(f"**MAPE:** {mape:.2f}%")
+    # Mostrar
+    st.write(f"**MAE:** {mae:.2f}")
+    st.write(f"**RMSE:** {rmse:.2f}")
+    st.write(f"**MAPE:** {mape:.2f}%")
