@@ -17,9 +17,31 @@ def cargar_datos(excel_path):
     df = df.sort_values(by='FECHA_VENTA')
     return df
 
+def preparar_serie_diaria(df_item):
+    # Agrupar ventas por día
+    df_agg = df_item.groupby('FECHA_VENTA').agg({
+        'CANTIDAD_VENDIDA': 'sum',
+        'DESCRIPCION': 'first',
+        'ITEM': 'first'
+    }).reset_index()
+
+    # Reindexar a frecuencia diaria
+    fecha_inicio = df_agg['FECHA_VENTA'].min()
+    fecha_fin = df_agg['FECHA_VENTA'].max()
+    fechas_diarias = pd.date_range(start=fecha_inicio, end=fecha_fin, freq='D')
+    df_diario = pd.DataFrame({'FECHA_VENTA': fechas_diarias})
+    df_merged = pd.merge(df_diario, df_agg, on='FECHA_VENTA', how='left')
+    df_merged['CANTIDAD_VENDIDA'] = df_merged['CANTIDAD_VENDIDA'].fillna(0)
+
+    # Rellenar columnas faltantes
+    df_merged['DESCRIPCION'] = df_merged['DESCRIPCION'].fillna(method='ffill')
+    df_merged['ITEM'] = df_merged['ITEM'].fillna(method='ffill')
+    
+    return df_merged
+
 def entrenar_prophet(df, periodo):
     df_p = df[['FECHA_VENTA', 'CANTIDAD_VENDIDA']].rename(columns={'FECHA_VENTA': 'ds', 'CANTIDAD_VENDIDA': 'y'})
-    model = Prophet()
+    model = Prophet(weekly_seasonality=True, daily_seasonality=False)
     model.fit(df_p)
     future = model.make_future_dataframe(periods=periodo, freq='D')
     forecast = model.predict(future)
@@ -37,9 +59,12 @@ items = df['ITEM'].unique()
 
 item_seleccionado = st.selectbox("Selecciona un ítem para analizar:", items)
 
-df_item = df[df['ITEM'] == item_seleccionado].copy()
-descripcion = df_item['DESCRIPCION'].iloc[0]
+df_item_raw = df[df['ITEM'] == item_seleccionado].copy()
+descripcion = df_item_raw['DESCRIPCION'].iloc[0]
 st.write(f"**Descripción del ítem:** {descripcion}")
+
+# Preprocesar serie diaria
+df_item = preparar_serie_diaria(df_item_raw)
 
 # Slider para elegir días a predecir
 periodo = st.slider("Selecciona el número de días a predecir:", min_value=7, max_value=90, value=45)
