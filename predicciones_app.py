@@ -45,7 +45,7 @@ def entrenar_prophet_semanal(df, periodo_semanas):
 # Interfaz Streamlit
 # -----------------------
 
-st.title("Predicción de Demanda Semanal con Prophet")
+st.markdown("<h1 style='text-align: center;'>Predicción de Demanda Semanal con Prophet</h1>", unsafe_allow_html=True)
 
 excel_path = "Items_Morante.xlsx"
 df = cargar_datos(excel_path)
