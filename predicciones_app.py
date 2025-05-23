@@ -19,9 +19,10 @@ def cargar_datos(excel_path):
 
 def entrenar_prophet(df, periodo):
     df_p = df[['FECHA_VENTA', 'CANTIDAD_VENDIDA']].rename(columns={'FECHA_VENTA': 'ds', 'CANTIDAD_VENDIDA': 'y'})
+    df_p = df_p.set_index('ds').asfreq('D').fillna(0).reset_index()  # Asegura frecuencia diaria
     model = Prophet()
     model.fit(df_p)
-    future = model.make_future_dataframe(periods=periodo)
+    future = model.make_future_dataframe(periods=periodo, freq='D')  # Frecuencia diaria
     forecast = model.predict(future)
     return forecast[['ds', 'yhat']]
 
@@ -53,8 +54,13 @@ df_comparacion = pd.merge(df_real, forecast, on='ds', how='left')
 
 # Separar futuro
 fecha_corte = df_real['ds'].max()
-forecast_futuro = forecast[forecast['ds'] > fecha_corte]
+forecast_futuro = forecast[(forecast['ds'] > fecha_corte) & 
+                           (forecast['ds'] <= fecha_corte + pd.Timedelta(days=periodo))]  # Limita al rango exacto
 total_predicho = forecast_futuro['yhat'].sum()
+
+# Mostrar número de días predichos (verificación)
+predicted_days = forecast_futuro.shape[0]
+st.write(f"Número de días predichos: {predicted_days}")
 
 # -----------------------
 # Gráfico
@@ -73,6 +79,9 @@ ax.axvline(fecha_corte, color='gray', linestyle=':', alpha=0.7)
 ax.annotate('Inicio de Predicción', xy=(fecha_corte, ax.get_ylim()[1]*0.9),
             xytext=(10, 0), textcoords='offset points', fontsize=10, color='gray')
 
+# Sombra para rango de predicción
+ax.axvspan(fecha_corte, fecha_corte + pd.Timedelta(days=periodo), color='gray', alpha=0.1, label='Rango de predicción')
+
 # Título y etiquetas
 ax.set_title("Pronóstico de Ventas con Valores Reales", fontsize=15)
 ax.set_xlabel("Fecha", fontsize=12)
@@ -84,6 +93,7 @@ ax.grid(True)
 plt.xticks(rotation=45)
 
 st.pyplot(fig)
+
 # -----------------------
 # Texto adicional bajo el gráfico
 # -----------------------
