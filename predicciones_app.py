@@ -19,10 +19,9 @@ def cargar_datos(excel_path):
 
 def entrenar_prophet(df, periodo):
     df_p = df[['FECHA_VENTA', 'CANTIDAD_VENDIDA']].rename(columns={'FECHA_VENTA': 'ds', 'CANTIDAD_VENDIDA': 'y'})
-    df_p = df_p.set_index('ds').asfreq('D').fillna(0).reset_index()  # Asegura frecuencia diaria
     model = Prophet()
     model.fit(df_p)
-    future = model.make_future_dataframe(periods=periodo, freq='D')  # Frecuencia diaria
+    future = model.make_future_dataframe(periods=periodo, freq='D')
     forecast = model.predict(future)
     return forecast[['ds', 'yhat']]
 
@@ -52,21 +51,14 @@ forecast = entrenar_prophet(df_item, periodo)
 df_real = df_item[['FECHA_VENTA', 'CANTIDAD_VENDIDA']].rename(columns={'FECHA_VENTA': 'ds', 'CANTIDAD_VENDIDA': 'y'})
 df_comparacion = pd.merge(df_real, forecast, on='ds', how='left')
 
-# Separar futuro
+# Determinar fecha de corte (última fecha real)
 fecha_corte = df_real['ds'].max()
-forecast_futuro = forecast[(forecast['ds'] > fecha_corte) & 
-                           (forecast['ds'] <= fecha_corte + pd.Timedelta(days=periodo))]  # Limita al rango exacto
-total_predicho = forecast_futuro['yhat'].sum()
-
-# Mostrar número de días predichos (verificación)
-predicted_days = forecast_futuro.shape[0]
-st.write(f"Número de días predichos: {predicted_days}")
 
 # -----------------------
 # Gráfico
 # -----------------------
 
-fig, ax = plt.subplots(figsize=(14, 6))  # Más ancho
+fig, ax = plt.subplots(figsize=(14, 6))
 
 # Línea azul: valores reales
 ax.plot(df_comparacion['ds'], df_comparacion['y'], 'b--', label='Cantidad Real', linewidth=2)
@@ -92,32 +84,31 @@ plt.xticks(rotation=45)
 st.pyplot(fig)
 
 # -----------------------
-# Texto adicional bajo el gráfico
+# Total estimado a futuro
 # -----------------------
+
+forecast_futuro = forecast[forecast['ds'] > fecha_corte]
+total_predicho = forecast_futuro['yhat'].sum()
+
 st.subheader(f"Total estimado para los próximos {periodo} días:")
 st.write(f"**{total_predicho:.0f} unidades estimadas** para importar en {periodo} días.")
 
 # -----------------------
-# Total estimado a futuro
+# Métricas de evaluación
 # -----------------------
 
-# Filtrar los datos comparables desde el inicio de la predicción
-df_eval = df_comparacion[df_comparacion['ds'] >= fecha_corte].copy()
-df_eval = df_eval.dropna()  # Asegura que no haya nulos en y o yhat
+df_eval = df_comparacion.dropna()
 
 if df_eval.empty:
-    st.warning("No hay datos reales disponibles en el período de predicción para calcular métricas de error.")
+    st.warning("No hay suficientes datos reales para calcular métricas.")
 else:
-    # Valores reales y pronosticados
     y_true = df_eval['y']
     y_pred = df_eval['yhat']
 
-    # Métricas
     mae = mean_absolute_error(y_true, y_pred)
     rmse = np.sqrt(mean_squared_error(y_true, y_pred))
     mape = np.mean(np.abs((y_true - y_pred) / (y_true + 1e-10))) * 100
 
-    # Mostrar
     st.write(f"**MAE:** {mae:.2f}")
     st.write(f"**RMSE:** {rmse:.2f}")
     st.write(f"**MAPE:** {mape:.2f}%")
