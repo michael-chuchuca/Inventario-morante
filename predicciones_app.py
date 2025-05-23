@@ -27,7 +27,13 @@ def preparar_serie_semanal(df_item_raw):
     return df_agg
 
 def entrenar_prophet_semanal(df, periodo_semanas):
-    model = Prophet(weekly_seasonality=True, yearly_seasonality=True, daily_seasonality=False)
+    # Ajustamos changepoint_prior_scale para mayor flexibilidad
+    model = Prophet(
+        weekly_seasonality=True,
+        yearly_seasonality=True,
+        daily_seasonality=False,
+        changepoint_prior_scale=0.1  # Mayor flexibilidad en los cambios de tendencia
+    )
     model.fit(df)
     future = model.make_future_dataframe(periods=periodo_semanas, freq='W')
     forecast = model.predict(future)
@@ -107,7 +113,7 @@ if forecast_futuro.empty:
     total_predicho = 0
 else:
     total_predicho = forecast_futuro['yhat'].sum()
-    
+
 # Convertir total semanal a unidades diarias estimadas
 # Asumiendo uniformidad, multiplicamos por 7 (días/semana)
 total_diario_estimado = total_predicho * (periodo_dias / (periodo_semanas * 7))
@@ -133,6 +139,10 @@ else:
     rmse = np.sqrt(mean_squared_error(y_true, y_pred))
     mape = np.mean(np.abs((y_true - y_pred) / y_true)) * 100
 
-    st.write(f"**MAE:** {mae:.2f}")
+    # MAE aproximado diario
+    mae_diario_aprox = mae / 7
+
+    st.write(f"**MAE (semanal):** {mae:.2f}")
+    st.write(f"**MAE aproximado diario:** {mae_diario_aprox:.2f}")
     st.write(f"**RMSE:** {rmse:.2f}")
     st.write(f"**MAPE:** {mape:.2f}%")
