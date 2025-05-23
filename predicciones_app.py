@@ -45,6 +45,8 @@ def entrenar_prophet(df, periodo):
     model.fit(df_p)
     future = model.make_future_dataframe(periods=periodo, freq='D')
     forecast = model.predict(future)
+    # Evitar predicciones negativas
+    forecast['yhat'] = forecast['yhat'].apply(lambda x: max(x, 0))
     return forecast[['ds', 'yhat']]
 
 # -----------------------
@@ -112,8 +114,11 @@ st.pyplot(fig)
 # Total estimado a futuro
 # -----------------------
 
-forecast_futuro = forecast[forecast['ds'] > fecha_corte]
-total_predicho = forecast_futuro['yhat'].sum()
+forecast_futuro = forecast[forecast['ds'] > fecha_corte].copy()
+if forecast_futuro.empty:
+    total_predicho = 0
+else:
+    total_predicho = forecast_futuro['yhat'].sum()
 
 st.subheader(f"Total estimado para los próximos {periodo} días:")
 st.write(f"**{total_predicho:.0f} unidades estimadas** para importar en {periodo} días.")
@@ -122,17 +127,18 @@ st.write(f"**{total_predicho:.0f} unidades estimadas** para importar en {periodo
 # Métricas de evaluación
 # -----------------------
 
-df_eval = df_comparacion.dropna()
+df_eval = df_comparacion.dropna().copy()
+df_eval = df_eval[df_eval['y'] > 0]  # Evitar división por cero en MAPE
 
 if df_eval.empty:
-    st.warning("No hay suficientes datos reales para calcular métricas.")
+    st.warning("No hay suficientes datos reales > 0 para calcular métricas.")
 else:
     y_true = df_eval['y']
     y_pred = df_eval['yhat']
 
     mae = mean_absolute_error(y_true, y_pred)
     rmse = np.sqrt(mean_squared_error(y_true, y_pred))
-    mape = np.mean(np.abs((y_true - y_pred) / (y_true + 1e-10))) * 100
+    mape = np.mean(np.abs((y_true - y_pred) / y_true)) * 100
 
     st.write(f"**MAE:** {mae:.2f}")
     st.write(f"**RMSE:** {rmse:.2f}")
