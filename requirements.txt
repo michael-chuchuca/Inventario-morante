@@ -6,4 +6,4 @@ scikit-learn
 statsmodels
 openpyxl
 prophet
-tensorflow
+tensorflow==2.17.1
