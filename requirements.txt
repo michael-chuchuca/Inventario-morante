@@ -5,5 +5,5 @@ matplotlib
 scikit-learn
 statsmodels
 openpyxl
-prophet
-tensorflow==2.17.1
+tensorflow==2.12.0
+prophet==1.1.4
