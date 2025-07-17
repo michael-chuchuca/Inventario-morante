@@ -47,13 +47,20 @@ st.markdown("<h1 style='text-align: center;'>Predicción de Demanda Semanal con 
 
 excel_path = "Items_Morante.xlsx"
 df = cargar_datos(excel_path)
-items = df['ITEM'].unique()
 
-item_seleccionado = st.selectbox("Selecciona un ítem para analizar:", items)
+# Crear columna combinada: "ITEM - DESCRIPCIÓN"
+df['ITEM_DESC'] = df['ITEM'].astype(str) + " - " + df['DESCRIPCION'].astype(str)
 
+# Mapeo para obtener ITEM real desde la selección combinada
+item_opciones = df[['ITEM', 'ITEM_DESC']].drop_duplicates().set_index('ITEM_DESC')
+item_seleccionado_desc = st.selectbox("Selecciona un ítem:", item_opciones.index)
+item_seleccionado = item_opciones.loc[item_seleccionado_desc]['ITEM']
+
+# Filtrar el ítem y extraer la descripción
 df_item_raw = df[df['ITEM'] == item_seleccionado].copy()
 descripcion = df_item_raw['DESCRIPCION'].iloc[0]
 st.write(f"**Descripción del ítem:** {descripcion}")
+
 
 periodo_dias = st.slider("Selecciona el número de días a predecir:", min_value=7, max_value=90, value=45)
 periodo_semanas = int(np.ceil(periodo_dias / 7))
