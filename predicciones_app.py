@@ -33,7 +33,7 @@ def preparar_serie_semanal(df_item_raw):
     df_agg = df_agg.set_index('ds').reindex(todas_las_fechas).fillna({'y': 0}).reset_index()
     df_agg = df_agg.rename(columns={'index': 'ds'})
 
-    # 🔹 Eliminar outliers extremos (top 2%)
+    # 🔹 Eliminación de outliers extremos
     umbral_extremo = df_agg['y'].quantile(0.98)
     df_agg['y'] = np.where(df_agg['y'] > umbral_extremo, umbral_extremo, df_agg['y'])
 
@@ -42,7 +42,7 @@ def preparar_serie_semanal(df_item_raw):
     df_agg['y'] = df_agg['y'].clip(upper=df_agg['y'].quantile(0.95))
     df_agg['y'] = df_agg['y'].rolling(window=2, min_periods=1).mean()
 
-    # Recuperar columnas perdidas
+    # Restaurar columnas perdidas
     df_agg['DESCRIPCION'] = df_item_raw['DESCRIPCION'].iloc[0]
     df_agg['ITEM'] = df_item_raw['ITEM'].iloc[0]
 
@@ -93,7 +93,6 @@ df_comparacion = pd.merge(df_real, forecast, on='ds', how='left')
 fecha_corte = df_real['ds'].max()
 
 fig, ax = plt.subplots(figsize=(14, 6))
-ax.plot(df_comparacion['ds'], df_item_raw.groupby(pd.Grouper(key='FECHA_VENTA', freq='W'))['CANTIDAD_VENDIDA'].sum().reset_index()['CANTIDAD_VENDIDA'], 'c--', label='Serie Original', linewidth=1.2)
 ax.plot(df_comparacion['ds'], df_comparacion['y'], 'b-', label='Serie Suavizada', linewidth=2)
 ax.plot(forecast['ds'], forecast['yhat'], 'r--', label='Cantidad Pronosticada', linewidth=2)
 ax.axvline(fecha_corte, color='gray', linestyle=':', alpha=0.7)
@@ -122,11 +121,11 @@ if df_eval.empty:
 else:
     y_true = df_eval['y']
     y_pred = df_eval['yhat']
-    
+
     mae = mean_absolute_error(y_true, y_pred)
     rmse = np.sqrt(mean_squared_error(y_true, y_pred))
     mape = np.mean(np.abs((y_true - y_pred) / y_true)) * 100
-    
+
     st.write(f"**MAE semanal:** {mae:.2f}")
     st.write(f"**RMSE semanal:** {rmse:.2f}")
     st.write(f"**MAPE semanal:** {mape:.2f}%")
