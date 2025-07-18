@@ -80,7 +80,7 @@ item_seleccionado = item_opciones.loc[item_seleccionado_desc]['ITEM']
 
 df_item_raw = df[df['ITEM'] == item_seleccionado].copy()
 descripcion = df_item_raw['DESCRIPCION'].iloc[0]
-#st.write(f"**Descripción del ítem:** {descripcion}")
+
 
 periodo_dias = st.slider("Selecciona el número de días a predecir:", min_value=7, max_value=90, value=45)
 periodo_semanas = int(np.ceil(periodo_dias / 7))
