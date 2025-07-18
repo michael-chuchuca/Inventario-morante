@@ -23,24 +23,24 @@ def preparar_serie_semanal(df_item_raw):
         'DESCRIPCION': 'first',
         'ITEM': 'first'
     }).reset_index()
-    
+
     df_agg = df_agg.rename(columns={'FECHA_VENTA': 'ds', 'CANTIDAD_VENDIDA': 'y'})
-    
-    # Rellenar semanas faltantes con cero
+
+    # Rellenar fechas faltantes con 0
     fecha_inicio = df_agg['ds'].min()
     fecha_fin = df_agg['ds'].max()
     todas_las_fechas = pd.date_range(fecha_inicio, fecha_fin, freq='W')
-    
     df_agg = df_agg.set_index('ds').reindex(todas_las_fechas).fillna({'y': 0}).reset_index()
     df_agg = df_agg.rename(columns={'index': 'ds'})
-    
-    # Suavizado con media móvil (window=3)
+
+    # Suavizado con media móvil + clipping del 95%
     df_agg['y'] = df_agg['y'].rolling(window=3, min_periods=1).mean()
-    
-    # Recuperar descripción e ítem
+    df_agg['y'] = df_agg['y'].clip(upper=df_agg['y'].quantile(0.95))
+
+    # Restaurar columnas faltantes
     df_agg['DESCRIPCION'] = df_item_raw['DESCRIPCION'].iloc[0]
     df_agg['ITEM'] = df_item_raw['ITEM'].iloc[0]
-    
+
     return df_agg
 
 def entrenar_prophet_semanal(df, periodo_semanas):
@@ -48,9 +48,10 @@ def entrenar_prophet_semanal(df, periodo_semanas):
         weekly_seasonality=True,
         yearly_seasonality=True,
         daily_seasonality=False,
-        seasonality_mode='multiplicative',
+        seasonality_mode='additive',
         changepoint_prior_scale=0.01,
-        seasonality_prior_scale=1.0
+        seasonality_prior_scale=1.0,
+        changepoint_range=0.9
     )
     model.fit(df)
     future = model.make_future_dataframe(periods=periodo_semanas, freq='W')
@@ -62,7 +63,7 @@ def entrenar_prophet_semanal(df, periodo_semanas):
 # Interfaz Streamlit
 # -----------------------
 
-st.markdown("<h1 style='text-align: center;'>Predicción de Demanda Semanal con Prophet</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center;'>Predicción de Demanda Semanal con Prophet Optimizado</h1>", unsafe_allow_html=True)
 
 excel_path = "Items_Morante.xlsx"
 df = cargar_datos(excel_path)
@@ -88,12 +89,12 @@ fecha_corte = df_real['ds'].max()
 
 fig, ax = plt.subplots(figsize=(14, 6))
 ax.plot(df_comparacion['ds'], df_item_raw.groupby(pd.Grouper(key='FECHA_VENTA', freq='W'))['CANTIDAD_VENDIDA'].sum().reset_index()['CANTIDAD_VENDIDA'], 'c--', label='Serie Original', linewidth=1.2)
-ax.plot(df_comparacion['ds'], df_comparacion['y'], 'b--', label='Serie Suavizada', linewidth=2)
+ax.plot(df_comparacion['ds'], df_comparacion['y'], 'b-', label='Serie Suavizada', linewidth=2)
 ax.plot(forecast['ds'], forecast['yhat'], 'r--', label='Cantidad Pronosticada', linewidth=2)
 ax.axvline(fecha_corte, color='gray', linestyle=':', alpha=0.7)
 ax.annotate('Inicio de Predicción', xy=(fecha_corte, ax.get_ylim()[1]*0.9),
             xytext=(10, 0), textcoords='offset points', fontsize=10, color='gray')
-ax.set_title("Pronóstico Semanal de Ventas con Prophet Suavizado", fontsize=15)
+ax.set_title("Pronóstico Semanal de Ventas con Prophet Optimizado", fontsize=15)
 ax.set_xlabel("Fecha", fontsize=12)
 ax.set_ylabel("Cantidad Vendida (semanal)", fontsize=12)
 ax.legend()
