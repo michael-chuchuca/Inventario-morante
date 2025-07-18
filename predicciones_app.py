@@ -117,13 +117,15 @@ df_eval = df_eval[df_eval['y'] > 0]
 if df_eval.empty:
     st.warning("No hay suficientes datos reales > 0 para calcular métricas.")
 else:
-    y_true = df_eval['y'] / 7  # promedio diario semanal
-    y_pred = df_eval['yhat'] / 7  # promedio diario semanal
+   # Ya no se divide entre 7
+y_true = df_eval['y']
+y_pred = df_eval['yhat']
 
-    mae = mean_absolute_error(y_true, y_pred)
-    rmse = np.sqrt(mean_squared_error(y_true, y_pred))
-    mape = np.mean(np.abs((y_true - y_pred) / y_true)) * 100
+mae = mean_absolute_error(y_true, y_pred)
+rmse = np.sqrt(mean_squared_error(y_true, y_pred))
+mape = np.mean(np.abs((y_true - y_pred) / y_true)) * 100
 
-    st.write(f"**MAE diario:** {mae:.2f}")
-    st.write(f"**RMSE diario:** {rmse:.2f}")
-    st.write(f"**MAPE diario:** {mape:.2f}%")
+st.write(f"**MAE semanal:** {mae:.2f}")
+st.write(f"**RMSE semanal:** {rmse:.2f}")
+st.write(f"**MAPE semanal:** {mape:.2f}%")
+
