@@ -23,7 +23,22 @@ def preparar_serie_semanal(df_item_raw):
         'DESCRIPCION': 'first',
         'ITEM': 'first'
     }).reset_index()
+    
     df_agg = df_agg.rename(columns={'FECHA_VENTA': 'ds', 'CANTIDAD_VENDIDA': 'y'})
+    
+    # Generar rango de fechas continuo semanal
+    fecha_inicio = df_agg['ds'].min()
+    fecha_fin = df_agg['ds'].max()
+    todas_las_fechas = pd.date_range(fecha_inicio, fecha_fin, freq='W')
+
+    # Reindexar y llenar vacíos con 0
+    df_agg = df_agg.set_index('ds').reindex(todas_las_fechas).fillna({'y': 0}).reset_index()
+    df_agg = df_agg.rename(columns={'index': 'ds'})
+
+    # Si se perdió descripción e ITEM, se recuperan
+    df_agg['DESCRIPCION'] = df_item_raw['DESCRIPCION'].iloc[0]
+    df_agg['ITEM'] = df_item_raw['ITEM'].iloc[0]
+
     return df_agg
 
 def entrenar_prophet_semanal(df, periodo_semanas):
