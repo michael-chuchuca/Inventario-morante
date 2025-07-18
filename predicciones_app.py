@@ -68,7 +68,7 @@ def entrenar_prophet_semanal(df, periodo_semanas):
 # Interfaz Streamlit
 # -----------------------
 
-st.markdown("<h1 style='text-align: center;'>Predicción de Demanda Semanal con Prophet Optimizado</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center;'>Predicción de Demanda Semanal con Prophet</h1>", unsafe_allow_html=True)
 
 excel_path = "Items_Morante.xlsx"
 df = cargar_datos(excel_path)
@@ -77,10 +77,6 @@ df['ITEM_DESC'] = df['ITEM'].astype(str) + " - " + df['DESCRIPCION'].astype(str)
 item_opciones = df[['ITEM', 'ITEM_DESC']].drop_duplicates().set_index('ITEM_DESC')
 item_seleccionado_desc = st.selectbox("Selecciona un ítem:", item_opciones.index)
 item_seleccionado = item_opciones.loc[item_seleccionado_desc]['ITEM']
-
-df_item_raw = df[df['ITEM'] == item_seleccionado].copy()
-descripcion = df_item_raw['DESCRIPCION'].iloc[0]
-st.write(f"**Descripción del ítem:** {descripcion}")
 
 periodo_dias = st.slider("Selecciona el número de días a predecir:", min_value=7, max_value=90, value=45)
 periodo_semanas = int(np.ceil(periodo_dias / 7))
@@ -94,7 +90,7 @@ fecha_corte = df_real['ds'].max()
 
 fig, ax = plt.subplots(figsize=(14, 6))
 ax.plot(df_comparacion['ds'], df_item_raw.groupby(pd.Grouper(key='FECHA_VENTA', freq='W'))['CANTIDAD_VENDIDA'].sum().reset_index()['CANTIDAD_VENDIDA'], 'c--', label='Serie Original', linewidth=1.2)
-ax.plot(df_comparacion['ds'], df_comparacion['y'], 'b-', label='Serie Suavizada', linewidth=2)
+ax.plot(df_comparacion['ds'], df_comparacion['y'], 'b-', label='Cantidad Real', linewidth=2)
 ax.plot(forecast['ds'], forecast['yhat'], 'r--', label='Cantidad Pronosticada', linewidth=2)
 ax.axvline(fecha_corte, color='gray', linestyle=':', alpha=0.7)
 ax.annotate('Inicio de Predicción', xy=(fecha_corte, ax.get_ylim()[1]*0.9),
