@@ -35,18 +35,24 @@ def preparar_serie_semanal(df_item_raw):
     df_agg = df_agg.set_index('ds').reindex(todas_las_fechas).fillna({'y': 0}).reset_index()
     df_agg = df_agg.rename(columns={'index': 'ds'})
 
-    # Si se perdió descripción e ITEM, se recuperan
+    # Suavizado con media móvil
+    df_agg['y'] = df_agg['y'].rolling(window=2, min_periods=1).mean()
+
+    # Restaurar columnas perdidas
     df_agg['DESCRIPCION'] = df_item_raw['DESCRIPCION'].iloc[0]
     df_agg['ITEM'] = df_item_raw['ITEM'].iloc[0]
 
     return df_agg
 
 def entrenar_prophet_semanal(df, periodo_semanas):
+    # Hiperparámetros ajustados
     model = Prophet(
         weekly_seasonality=True,
         yearly_seasonality=True,
         daily_seasonality=False,
-        changepoint_prior_scale=0.1
+        seasonality_mode='multiplicative',
+        changepoint_prior_scale=0.05,
+        seasonality_prior_scale=5.0
     )
     model.fit(df)
     future = model.make_future_dataframe(periods=periodo_semanas, freq='W')
@@ -63,19 +69,14 @@ st.markdown("<h1 style='text-align: center;'>Predicción de Demanda Semanal con 
 excel_path = "Items_Morante.xlsx"
 df = cargar_datos(excel_path)
 
-# Crear columna combinada: "ITEM - DESCRIPCIÓN"
 df['ITEM_DESC'] = df['ITEM'].astype(str) + " - " + df['DESCRIPCION'].astype(str)
-
-# Mapeo para obtener ITEM real desde la selección combinada
 item_opciones = df[['ITEM', 'ITEM_DESC']].drop_duplicates().set_index('ITEM_DESC')
 item_seleccionado_desc = st.selectbox("Selecciona un ítem:", item_opciones.index)
 item_seleccionado = item_opciones.loc[item_seleccionado_desc]['ITEM']
 
-# Filtrar el ítem y extraer la descripción
 df_item_raw = df[df['ITEM'] == item_seleccionado].copy()
 descripcion = df_item_raw['DESCRIPCION'].iloc[0]
 st.write(f"**Descripción del ítem:** {descripcion}")
-
 
 periodo_dias = st.slider("Selecciona el número de días a predecir:", min_value=7, max_value=90, value=45)
 periodo_semanas = int(np.ceil(periodo_dias / 7))
