@@ -33,11 +33,11 @@ def preparar_serie_semanal(df_item_raw):
     df_agg = df_agg.set_index('ds').reindex(todas_las_fechas).fillna({'y': 0}).reset_index()
     df_agg = df_agg.rename(columns={'index': 'ds'})
 
-    # 🔹 Eliminar outliers extremos (top 2%)
+    # Eliminar outliers extremos (top 2%)
     umbral_extremo = df_agg['y'].quantile(0.98)
     df_agg['y'] = np.where(df_agg['y'] > umbral_extremo, umbral_extremo, df_agg['y'])
 
-    # 🔹 Suavizado doble + clipping
+    # Suavizado doble + clipping
     df_agg['y'] = df_agg['y'].rolling(window=3, min_periods=1).mean()
     df_agg['y'] = df_agg['y'].clip(upper=df_agg['y'].quantile(0.95))
     df_agg['y'] = df_agg['y'].rolling(window=2, min_periods=1).mean()
