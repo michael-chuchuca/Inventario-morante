@@ -49,7 +49,7 @@ def preparar_serie_semanal(df_item_raw):
     df_agg['y'] = df_agg['y'].clip(upper=df_agg['y'].quantile(0.95))
     df_agg['y'] = df_agg['y'].rolling(window=2, min_periods=1).mean()
 
-    # Recupera columnas perdidas tras el reindex
+    # Recupera columnas perdidas tras la reindexación
     df_agg['DESCRIPCION'] = df_item_raw['DESCRIPCION'].iloc[0]
     df_agg['ITEM'] = df_item_raw['ITEM'].iloc[0]
 
@@ -177,3 +177,4 @@ else:
     st.write(f"**MAE semanal:** {mae:.2f}")
     st.write(f"**RMSE semanal:** {rmse:.2f}")
     st.write(f"**MAPE semanal:** {mape:.2f}%")
+
